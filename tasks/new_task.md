@@ -1,3 +1,5 @@
+![Task Image](images/task_image_20250622_234948.png)
+
 **🎮 Weekly Programming Challenge: Build Your Own 2D Arcade Game in Java!**
 
 Welcome to your most exciting challenge yet! This week, you’ll be designing and implementing a simple 2D arcade-style game using Java. The game will include a player-controlled character, enemies, points to collect, and a scoring system. You will apply object-oriented principles, read game data from files, and creatively solve problems to make your game functional and fun to play.
