@@ -1,67 +1,37 @@
 import sys
 import os
 import requests
-from openai import OpenAI  
+from utils import OpenAIClient, validate_environment, print_error_and_exit
+from config import Config  
 
 
 def main(pr_number, test_results_file):
+    """Generate congratulatory message for successful submissions."""
+    validate_environment()
+    
     # Prepare the prompt
     prompt = (
         "A student has submitted their solution for a programming assignment, and their code passed all the tests.\n\n"
-        "Provide a congratulatory message to the student, do not make it too rosy or too long but simple, and suggest some further readings or topics they can explore to deepen their understanding."
+        "Provide a congratulatory message to the student, do not make it too rosy or too long but simple, "
+        "and suggest some further readings or topics they can explore to deepen their understanding."
     )
+    
+    system_message = "You are a helpful instructor providing positive feedback to a student."
 
-    # Initialize OpenAI client
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        print("Error: OPENAI_API_KEY is not set.")
-        sys.exit(1)
-
-    client = OpenAI(api_key=api_key)
-
-    # Call OpenAI API using the new format
+    # Generate congratulatory message
     try:
-        response = client.chat.completions.create(
-            model="chatgpt-4o-latest",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful instructor providing positive feedback to a student."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=300,
-            temperature=0.7,
+        client = OpenAIClient()
+        message = client.create_response(
+            prompt=prompt,
+            task_name='generate_compliment_and_merge',
+            system_message=system_message,
+            max_tokens=Config.TASK_SETTINGS['compliment_tokens']
         )
-        message = response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error generating message: {e}")
-        sys.exit(1)
+        print_error_and_exit(f"Error generating message: {str(e)}")
 
     # Post the message as a comment on the PR
-    gh_token = os.getenv('GH_TOKEN') or os.getenv('GITHUB_TOKEN')
-    if not gh_token:
-        print("Error: GH_TOKEN or GITHUB_TOKEN is not set.")
-        sys.exit(1)
-
-    repo = os.getenv('GITHUB_REPOSITORY')
-    if not repo:
-        print("Error: GITHUB_REPOSITORY is not set.")
-        sys.exit(1)
-
-    comment_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
-    headers = {
-        'Authorization': f'token {gh_token}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-    data = {'body': message}
-
-    r = requests.post(comment_url, json=data, headers=headers)
-    if r.status_code == 201:
-        print('Message posted successfully.')
-    else:
-        print(f'Failed to post message: {r.status_code} {r.text}')
-        sys.exit(1)
+    post_github_comment(pr_number, message)
 
     # Optionally, merge the PR
     # Note: Automatic merging should be used with caution
@@ -73,6 +43,33 @@ def main(pr_number, test_results_file):
     # else:
     #     print(f'Failed to merge pull request: {merge_response.status_code} {merge_response.text}')
     #     sys.exit(1)
+
+def post_github_comment(pr_number, message):
+    """Post congratulatory message as a comment on GitHub PR."""
+    gh_token = os.getenv('GH_TOKEN') or os.getenv('GITHUB_TOKEN')
+    if not gh_token:
+        print_error_and_exit("GH_TOKEN or GITHUB_TOKEN environment variable is required")
+
+    repo = os.getenv('GITHUB_REPOSITORY')
+    if not repo:
+        print_error_and_exit("GITHUB_REPOSITORY environment variable is required")
+
+    comment_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+    headers = {
+        'Authorization': f'token {gh_token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    data = {'body': message}
+
+    try:
+        r = requests.post(comment_url, json=data, headers=headers, timeout=30)
+        if r.status_code == 201:
+            print('Message posted successfully.')
+        else:
+            print_error_and_exit(f'Failed to post message: {r.status_code} {r.text}')
+    except requests.RequestException as e:
+        print_error_and_exit(f'Error posting GitHub comment: {str(e)}')
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

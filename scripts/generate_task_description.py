@@ -1,43 +1,34 @@
 import os
 import sys
-import subprocess
 from datetime import datetime
 import pytz
 from pytz import timezone
-
-# Import the OpenAI client
-from openai import OpenAI
+from utils import OpenAIClient, GitOperations, FileOperations, validate_environment, print_error_and_exit
+from config import Config
 
 def main(api_key):
-    if not api_key:
-        print("Error: OpenAI API key is missing.")
-        sys.exit(1)
-
+    """Generate comprehensive task description with exercises."""
+    validate_environment()
+    
     # Initialize the OpenAI client
-    client = OpenAI(api_key=api_key)
+    client = OpenAIClient()
 
     # Extract theme and language from environment variables
     theme = os.getenv("TASK_THEME", "Create a basic Java application with the following requirements.")
     language = os.getenv("TASK_LANGUAGE", "English")
 
-    # Shared settings for all API calls
-    base_settings = {
-        "model": "chatgpt-4o-latest",
-        "temperature": 0.7,
-    }
-
     # Function to make API calls with configurable token limit
-    def generate_task_step(system_message, user_message, max_tokens=1500):
-        messages = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": user_message}
-        ]
-        response = client.chat.completions.create(
-            messages=messages, 
-            **base_settings,
-            max_tokens=max_tokens
-        )
-        return response.choices[0].message.content
+    def generate_task_step(system_message, user_message, max_tokens=None):
+        """Generate task step using OpenAI API."""
+        try:
+            return client.create_response(
+                prompt=user_message,
+                task_name='generate_task_description',
+                system_message=system_message,
+                max_tokens=max_tokens or Config.TASK_SETTINGS['default_tokens']
+            )
+        except Exception as e:
+            print_error_and_exit(f"Error generating task step: {str(e)}")
 
     # Step 1: Generate Task Theme Description
 
@@ -100,8 +91,7 @@ def main(api_key):
     task_description = generate_task_step(system_message, user_message)
     print(task_description)
 
-    # Step 2: Generate Exercises 1 & 2 (with 600 token limit)
-    
+    # Step 2: Generate Exercises 1 & 2
     user_message = (
         f"The following is the task description so far:\n\n{task_description}\n\n"
         "Based on this, create the first two exercises:\n"
@@ -110,7 +100,7 @@ def main(api_key):
         "Hold these exercises short and concise each of them to ca 300 - 400 words max."
     )
 
-    exercises_1_2 = generate_task_step(system_message, user_message, max_tokens=900)
+    exercises_1_2 = generate_task_step(system_message, user_message, Config.TASK_SETTINGS['exercises_1_2_tokens'])
     print(exercises_1_2)
 
     # Step 3: Generate Exercises 3 & 4
@@ -146,52 +136,31 @@ def main(api_key):
     # Create a new branch with a unique name
     stockholm_tz = timezone('Europe/Stockholm')
     branch_name = f"task-{datetime.now(stockholm_tz).strftime('%Y%m%d%H%M')}"
-    create_branch(branch_name)
-
-    # Write the response content to a markdown file
-    task_file_path = os.path.join("tasks", "new_task.md")
-    with open(task_file_path, "w") as file:
-        file.write(complete_task)
-
-    # Commit and push changes
-    commit_and_push_changes(branch_name, task_file_path)
+    
+    try:
+        GitOperations.create_branch(branch_name)
+        
+        # Write the response content to a markdown file
+        task_file_path = os.path.join(Config.get_path('tasks_dir'), "new_task.md")
+        FileOperations.write_file(task_file_path, complete_task)
+        
+        # Commit and push changes
+        GitOperations.commit_and_push(
+            branch_name, 
+            task_file_path, 
+            f"Add new task description: {branch_name}"
+        )
+    except Exception as e:
+        print_error_and_exit(f"Error creating branch and committing changes: {str(e)}")
 
     # Output the branch name for the next job
     print(f"::set-output name=branch_name::{branch_name}")
 
-# Functionality for git operations remains unchanged
-def create_branch(branch_name):
-    try:
-        subprocess.run(["git", "checkout", "-b", branch_name], check=True)
-        subprocess.run(
-            ["git", "push", "-u", "origin", branch_name],
-            check=True,
-            env=dict(os.environ, GIT_ASKPASS='echo', GIT_USERNAME='x-access-token', GIT_PASSWORD=os.getenv('GITHUB_TOKEN'))
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error creating branch: {e}")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python generate_task_description.py <api_key>")
         sys.exit(1)
 
-def commit_and_push_changes(branch_name, task_file_path):
-    try:
-        subprocess.run(["git", "config", "--global", "user.email", "actions@github.com"], check=True)
-        subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
-
-        subprocess.run(["git", "add", task_file_path], check=True)
-        subprocess.run(["git", "commit", "-m", f"Add new task description: {branch_name}"], check=True)
-        subprocess.run(
-            ["git", "push", "--set-upstream", "origin", branch_name],
-            check=True,
-            env=dict(os.environ, GIT_ASKPASS='echo', GIT_USERNAME='x-access-token', GIT_PASSWORD=os.getenv('GITHUB_TOKEN'))
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error committing and pushing changes: {e}")
-        sys.exit(1)
-
-if len(sys.argv) != 2:
-    print("Error: Missing required command line argument 'api_key'")
-    sys.exit(1)
-
-api_key = sys.argv[1]
-
-main(api_key)
+    api_key = sys.argv[1]
+    main(api_key)

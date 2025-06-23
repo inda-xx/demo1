@@ -1,57 +1,59 @@
 import sys
 import os
 import requests
-from openai import OpenAI  # Assuming you're using a client-based approach
+from utils import OpenAIClient, validate_environment, print_error_and_exit
+from config import Config
 
 def main(pr_number, test_results_file):
-    # Read test results
-    with open(test_results_file, 'r') as f:
-        test_results = f.read()
+    """Generate feedback and clues for failed tests."""
+    validate_environment()
+    
+    try:
+        # Read test results
+        with open(test_results_file, 'r') as f:
+            test_results = f.read()
+    except FileNotFoundError:
+        print_error_and_exit(f"Test results file not found: {test_results_file}")
+    except Exception as e:
+        print_error_and_exit(f"Error reading test results: {str(e)}")
     
     # Prepare the prompt
     prompt = (
         f"The student's code failed the following tests:\n\n{test_results}\n\n"
         "Provide constructive and concise feedback to help the student understand what went wrong and how to fix it."
     )
+    
+    # System message (fixed duplicate content bug)
+    system_message = (
+        "You are a helpful instructor providing constructive feedback to a student. "
+        "You are instructive but to the point and concise with your help and do not reveal "
+        "the whole answer to the students but provide hints so that they can get there."
+    )
 
-    # Initialize OpenAI client
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        print("Error: OPENAI_API_KEY is not set.")
-        sys.exit(1)
-
-    client = OpenAI(api_key=api_key)
-
-    # Call OpenAI API using the new format
+    # Initialize OpenAI client and generate feedback
     try:
-        response = client.chat.completions.create(
-            model="chatgpt-4o-latest",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful instructor providing constructive feedback to a student.",
-                    "content": "You are instructive but to the point and concise with your help and do not reveal the whole answer to the students but provide hints so that they can get there."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=500,
-            temperature=0.7,
+        client = OpenAIClient()
+        feedback = client.create_response(
+            prompt=prompt,
+            task_name='generate_feedback_and_clues',
+            system_message=system_message,
+            max_tokens=Config.TASK_SETTINGS['feedback_tokens']
         )
-        feedback = response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error generating feedback: {e}")
-        sys.exit(1)
+        print_error_and_exit(f"Error generating feedback: {str(e)}")
 
     # Post the feedback as a comment on the PR
+    post_github_comment(pr_number, feedback)
+
+def post_github_comment(pr_number, feedback):
+    """Post feedback as a comment on GitHub PR."""
     gh_token = os.getenv('GH_TOKEN') or os.getenv('GITHUB_TOKEN')
     if not gh_token:
-        print("Error: GH_TOKEN or GITHUB_TOKEN is not set.")
-        sys.exit(1)
+        print_error_and_exit("GH_TOKEN or GITHUB_TOKEN environment variable is required")
 
     repo = os.getenv('GITHUB_REPOSITORY')
     if not repo:
-        print("Error: GITHUB_REPOSITORY is not set.")
-        sys.exit(1)
+        print_error_and_exit("GITHUB_REPOSITORY environment variable is required")
 
     comment_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
     headers = {
@@ -60,12 +62,15 @@ def main(pr_number, test_results_file):
     }
     data = {'body': feedback}
 
-    r = requests.post(comment_url, json=data, headers=headers)
-    if r.status_code == 201:
-        print('Feedback posted successfully.')
-    else:
-        print(f'Failed to post feedback: {r.status_code} {r.text}')
-        sys.exit(1)
+    try:
+        r = requests.post(comment_url, json=data, headers=headers, timeout=30)
+        if r.status_code == 201:
+            print('Feedback posted successfully.')
+        else:
+            print_error_and_exit(f'Failed to post feedback: {r.status_code} {r.text}')
+    except requests.RequestException as e:
+        print_error_and_exit(f'Error posting GitHub comment: {str(e)}')
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

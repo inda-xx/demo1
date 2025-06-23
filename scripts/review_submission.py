@@ -1,44 +1,49 @@
 import os
 import sys
-import requests 
-from openai import OpenAI
+import requests
+from utils import OpenAIClient, validate_environment, print_error_and_exit, FileOperations
+from config import Config
 
 
 def main():
+    """Review student submission and provide feedback."""
+    validate_environment()
+    
     # Environment variables
-    api_key = os.getenv('OPENAI_API_KEY')
     gh_token = os.getenv('GH_TOKEN') or os.getenv('GITHUB_TOKEN')
     repo = os.getenv('GITHUB_REPOSITORY')
     pr_number = os.getenv('GITHUB_PR_NUMBER')
 
-    if not all([api_key, gh_token, repo, pr_number]):
-        print("Error: Missing environment variables.")
-        sys.exit(1)
+    if not all([gh_token, repo, pr_number]):
+        print_error_and_exit("Missing required environment variables: GH_TOKEN, GITHUB_REPOSITORY, GITHUB_PR_NUMBER")
 
     # Initialize OpenAI client
-    client = OpenAI(api_key=api_key)
+    client = OpenAIClient()
 
     # Read the task description from tasks/new_task.md
     try:
-        with open('tasks/new_task.md', 'r') as f:
-            task_description = f.read()
+        task_description = FileOperations.read_file('tasks/new_task.md')
     except FileNotFoundError:
-        print("Error: Task description file 'tasks/new_task.md' not found.")
-        sys.exit(1)
+        print_error_and_exit("Task description file 'tasks/new_task.md' not found")
+    except Exception as e:
+        print_error_and_exit(f"Error reading task description: {str(e)}")
 
     # Collect student's submission code from gen_src directory
     submission_code = ""
-    for root, dirs, files in os.walk('gen_src'):
-        for file in files:
-            if file.endswith('.java'):
-                file_path = os.path.join(root, file)
-                with open(file_path, 'r') as code_file:
-                    code_content = code_file.read()
+    gen_src_dir = Config.get_path('gen_src_dir')
+    
+    try:
+        for root, dirs, files in os.walk(gen_src_dir):
+            for file in files:
+                if file.endswith('.java'):
+                    file_path = os.path.join(root, file)
+                    code_content = FileOperations.read_file(file_path)
                     submission_code += f"// File: {file_path}\n{code_content}\n\n"
+    except Exception as e:
+        print_error_and_exit(f"Error reading submission files: {str(e)}")
 
     if not submission_code:
-        print("Error: No Java files found in 'gen_src' directory.")
-        sys.exit(1)
+        print_error_and_exit(f"No Java files found in '{gen_src_dir}' directory")
 
     # Prepare the prompt
     prompt = (
@@ -53,26 +58,24 @@ def main():
         "Keep your output to a point and be concise and effective in your answers."
     )
 
-    # Call OpenAI API
+    # Generate feedback using OpenAI API
+    system_message = "You are a helpful and thorough Java programming instructor."
+    
     try:
-        response = client.chat.completions.create(
-            model="chatgpt-4o-latest",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful and thorough Java programming instructor."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=1000,
-            temperature=0.7,
+        feedback = client.create_response(
+            prompt=prompt,
+            task_name='review_submission',
+            system_message=system_message,
+            max_tokens=1000
         )
-        feedback = response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error generating feedback: {e}")
-        sys.exit(1)
+        print_error_and_exit(f"Error generating feedback: {str(e)}")
 
     # Post the feedback as a comment on the PR
+    post_github_comment(pr_number, feedback, gh_token, repo)
+
+def post_github_comment(pr_number, feedback, gh_token, repo):
+    """Post feedback as a comment on GitHub PR."""
     comment_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
     headers = {
         'Authorization': f'token {gh_token}',
@@ -80,12 +83,15 @@ def main():
     }
     data = {'body': feedback}
 
-    r = requests.post(comment_url, json=data, headers=headers)
-    if r.status_code == 201:
-        print('Feedback posted successfully.')
-    else:
-        print(f'Failed to post feedback: {r.status_code} {r.text}')
-        sys.exit(1)
+    try:
+        r = requests.post(comment_url, json=data, headers=headers, timeout=30)
+        if r.status_code == 201:
+            print('Feedback posted successfully.')
+        else:
+            print_error_and_exit(f'Failed to post feedback: {r.status_code} {r.text}')
+    except requests.RequestException as e:
+        print_error_and_exit(f'Error posting GitHub comment: {str(e)}')
+
 
 if __name__ == "__main__":
     main()

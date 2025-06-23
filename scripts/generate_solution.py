@@ -307,6 +307,9 @@ def write_generated_code_to_files(directory, code_content):
     Handles cases where leftover comments or initializations are present.
     Also ensures that import statements and public class declarations are captured.
     """
+    # Ensure directory exists
+    FileOperations.ensure_directory(directory)
+    
     # Split the code content into separate class definitions
     class_blocks = re.split(r'(?:^|\n)(?=public\s+class\s)', code_content)
 
@@ -333,10 +336,9 @@ def write_generated_code_to_files(directory, code_content):
         file_path = os.path.join(directory, file_name)
 
         try:
-            with open(file_path, "w") as java_file:
-                java_file.write(cleaned_block)
+            FileOperations.write_file(file_path, cleaned_block)
             print(f"Successfully wrote {file_name}")
-        except IOError as e:
+        except Exception as e:
             print(f"Error writing file {file_name}: {e}")
 
 def clean_class_block(block):

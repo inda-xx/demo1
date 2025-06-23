@@ -1,37 +1,41 @@
 import os
 import re
 import sys
-import subprocess
-from openai import OpenAI
+from utils import OpenAIClient, GitOperations, FileOperations, validate_environment, print_error_and_exit
+from config import Config
 
 def main(api_key, branch_name):
-    if not api_key:
-        print("Error: OpenAI API key is missing.")
-        sys.exit(1)
+    """Generate unit tests based on solution code."""
+    validate_environment()
+    
+    if not branch_name:
+        print_error_and_exit("Branch name is missing")
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAIClient()
 
     # Ensure we are on the correct branch
     try:
-        subprocess.run(["git", "checkout", branch_name], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error checking out branch {branch_name}: {e}")
-        sys.exit(1)
+        GitOperations.checkout_branch(branch_name)
+    except Exception as e:
+        print_error_and_exit(f"Error checking out branch {branch_name}: {str(e)}")
 
     # Read the solution code from the .hidden_tasks directory
     solution_files = []
+    hidden_tasks_dir = Config.get_path('hidden_tasks_dir')
+    
     try:
-        for filename in os.listdir(".hidden_tasks"):
+        for filename in os.listdir(hidden_tasks_dir):
             if filename.endswith(".java"):
-                with open(os.path.join(".hidden_tasks", filename), "r") as file:
-                    solution_files.append(file.read())
+                file_path = os.path.join(hidden_tasks_dir, filename)
+                content = FileOperations.read_file(file_path)
+                solution_files.append(content)
     except FileNotFoundError:
-        print("Error: Solution files not found in .hidden_tasks directory.")
-        sys.exit(1)
+        print_error_and_exit("Solution files not found in .hidden_tasks directory")
+    except Exception as e:
+        print_error_and_exit(f"Error reading solution files: {str(e)}")
 
     if not solution_files:
-        print("Error: No Java solution files found in .hidden_tasks.")
-        sys.exit(1)
+        print_error_and_exit("No Java solution files found in .hidden_tasks")
 
     solution = "\n\n".join(solution_files)
 
@@ -296,40 +300,40 @@ def main(api_key, branch_name):
         "Make sure all the right imports are always included."
     )
 
-    response_content = generate_with_retries(client, prompt, max_retries=3)
-    if response_content is None:
-        print("Error: Failed to generate the tests after multiple retries.")
-        sys.exit(1)
+    try:
+        response_content = client.create_response(
+            prompt=prompt,
+            task_name='generate_tests',
+            system_message="You are a helpful assistant creating comprehensive unit tests for Java programming assignments.",
+            max_tokens=3000
+        )
+    except Exception as e:
+        print_error_and_exit(f"Failed to generate tests: {str(e)}")
 
     # Write the generated tests to appropriate Java files in the gen_test directory
-    gen_test_dir = os.path.join("gen_test")
-    write_generated_tests_to_files(gen_test_dir, response_content)
+    gen_test_dir = Config.get_path('gen_test_dir')
+    
+    try:
+        write_generated_tests_to_files(gen_test_dir, response_content)
 
-    # Commit and push changes
-    commit_and_push_changes(branch_name, gen_test_dir)
+        # Commit and push changes
+        GitOperations.commit_and_push(
+            branch_name,
+            gen_test_dir,
+            "Add generated tests"
+        )
+    except Exception as e:
+        print_error_and_exit(f"Error processing tests: {str(e)}")
 
-def generate_with_retries(client, prompt, max_retries=3):
-    for attempt in range(max_retries):
-        try:
-            response = client.chat.completions.create(
-                model="chatgpt-4o-latest",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            print(f"Error generating the tests: {e}")
-            if attempt < max_retries - 1:
-                print("Retrying...")
-    return None
 
 def write_generated_tests_to_files(directory, code_content):
     """
     Write generated Java tests to separate files based on class names.
     Ensures that import statements and public class declarations are correctly handled.
     """
+    # Ensure directory exists
+    FileOperations.ensure_directory(directory)
+    
     # Split the code into blocks starting with 'public class' or similar
     file_blocks = re.split(r'(?=public\s+class\s+\w+\s*{)', code_content)
 
@@ -362,37 +366,19 @@ def write_generated_tests_to_files(directory, code_content):
         file_name = f"{class_name}.java"
         file_path = os.path.join(directory, file_name)
 
-        # Ensure the directory exists
-        os.makedirs(directory, exist_ok=True)
-
         try:
-            with open(file_path, "w") as java_file:
-                java_file.write(file_content)
+            FileOperations.write_file(file_path, file_content)
             print(f"Successfully wrote {file_name}")
-        except IOError as e:
+        except Exception as e:
             print(f"Error writing file {file_name}: {e}")
 
-def commit_and_push_changes(branch_name, directory):
-    try:
-        subprocess.run(["git", "config", "--global", "user.email", "actions@github.com"], check=True)
-        subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
 
-        subprocess.run(["git", "add", directory], check=True)
-        subprocess.run(["git", "commit", "-m", "Add generated tests"], check=True)
-        subprocess.run(
-            ["git", "push", "--set-upstream", "origin", branch_name],
-            check=True,
-            env=dict(os.environ, GIT_ASKPASS='echo', GIT_USERNAME='x-access-token', GIT_PASSWORD=os.getenv('GITHUB_TOKEN'))
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error committing and pushing changes: {e}")
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python generate_tests.py <api_key> <branch_name>")
         sys.exit(1)
 
-if len(sys.argv) != 3:
-    print("Error: Missing required command line arguments 'api_key' and 'branch_name'")
-    sys.exit(1)
+    api_key = sys.argv[1]
+    branch_name = sys.argv[2]
 
-api_key = sys.argv[1]
-branch_name = sys.argv[2]
-
-main(api_key, branch_name)
+    main(api_key, branch_name)

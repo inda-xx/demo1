@@ -1,14 +1,15 @@
-from openai import OpenAI
 import os
-import requests
 from datetime import datetime
+from utils import OpenAIClient, FileOperations, validate_environment, print_error_and_exit
+from config import Config
 
-# Path for the task file
-task_file_path = os.path.join("tasks", "new_task.md")
-images_dir = os.path.join("tasks", "images")
+# Path configuration
+task_file_path = os.path.join(Config.get_path('tasks_dir'), "new_task.md")
+images_dir = Config.get_path('images_dir')
 
-def generate_image_url_from_description(description, client):
-    # Build a more descriptive prompt for DALL-E based on the task details
+def generate_image_from_description(description, client):
+    """Generate image based on task description using new image generation API."""
+    # Build a more descriptive prompt for image generation
     prompt = (
         f"Create an illustration for a programming task based on the following theme:\n\n"
         f"Theme: {description[:200]}...\n\n"  # Include a snippet of the description as a theme
@@ -17,68 +18,64 @@ def generate_image_url_from_description(description, client):
         "Make sure the image is clear, modern, and professional, suitable as an educational feature in a programming context."
     )
 
-    # Generate image using DALL-E 3
-    response = client.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        size="1792x1024",
-        quality="standard",
-        n=1,
-    )
+    try:
+        # Generate image using new API
+        image_base64 = client.generate_image(prompt)
+        return image_base64
+    except Exception as e:
+        raise Exception(f"Error generating image: {str(e)}")
 
-    # Get the URL of the generated image
-    image_url = response.data[0].url
-    return image_url
-
-def download_image(image_url):
-    # Create images directory if it doesn't exist
-    os.makedirs(images_dir, exist_ok=True)
-    
+def save_image(image_base64):
+    """Save base64 image data to file."""
     # Generate unique filename using timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     image_filename = f"task_image_{timestamp}.png"
     image_path = os.path.join(images_dir, image_filename)
     
-    # Download the image
-    response = requests.get(image_url)
-    if response.status_code == 200:
-        with open(image_path, "wb") as f:
-            f.write(response.content)
+    try:
+        # Save the image using utility function
+        FileOperations.save_image(image_path, image_base64)
         return os.path.join("images", image_filename)  # Return relative path
-    return None
+    except Exception as e:
+        raise Exception(f"Error saving image: {str(e)}")
 
 def insert_image_into_markdown(image_path, markdown_path):
-    # Read the existing task description and add the image URL at the top
-    with open(markdown_path, "r") as f:
-        markdown_content = f.read()
-    image_markdown = f"![Task Image]({image_path})\n\n"
-    new_markdown_content = image_markdown + markdown_content
+    """Insert image reference into markdown file."""
+    try:
+        # Read the existing task description and add the image URL at the top
+        markdown_content = FileOperations.read_file(markdown_path)
+        image_markdown = f"![Task Image]({image_path})\n\n"
+        new_markdown_content = image_markdown + markdown_content
 
-    # Write the updated content back to the markdown file
-    with open(markdown_path, "w") as f:
-        f.write(new_markdown_content)
+        # Write the updated content back to the markdown file
+        FileOperations.write_file(markdown_path, new_markdown_content)
+    except Exception as e:
+        raise Exception(f"Error updating markdown file: {str(e)}")
 
 def main(api_key):
-    client = OpenAI(api_key=api_key)
-
-    # Read the task description from the markdown file
-    with open(task_file_path, "r") as f:
-        task_description = f.read()
-
-    # Generate the image URL and add it to the markdown file
-    image_url = generate_image_url_from_description(task_description, client)
-    image_path = download_image(image_url)
+    """Generate and insert task image into markdown file."""
+    validate_environment()
     
-    if image_path:
+    client = OpenAIClient()
+
+    try:
+        # Read the task description from the markdown file
+        task_description = FileOperations.read_file(task_file_path)
+
+        # Generate the image and add it to the markdown file
+        image_base64 = generate_image_from_description(task_description, client)
+        image_path = save_image(image_base64)
+        
         insert_image_into_markdown(image_path, task_file_path)
-        print("Image downloaded and added to the task file.")
-    else:
-        print("Error: Failed to download image.")
+        print("Image generated and added to the task file.")
+        
+    except Exception as e:
+        print_error_and_exit(f"Error in main process: {str(e)}")
 
 if __name__ == "__main__":
     # Ensure the OpenAI API key is provided as an environment variable
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("Error: OpenAI API key not found.")
+        print_error_and_exit("OpenAI API key not found")
     else:
         main(api_key)
