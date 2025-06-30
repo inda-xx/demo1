@@ -32,72 +32,93 @@ def main(api_key):
 
     # Step 1: Generate Task Theme Description
 
-    language = "English"
+    # Define learning goals with more structure
     learning_goals = """
-    * Using Data from Files to Instantiate Objects
-    * Designing Classes
-    * Programming Creatively
+    1. Using Data from Files to Instantiate Objects
+       - Reading and parsing file formats (CSV, JSON, text files)
+       - Converting file data into object attributes
+       - Handling file I/O exceptions and data validation
+       - Dynamic object creation based on external data
 
-        {
-            "main_point": "Using Data from Files to Instantiate Objects",
-            "sub_points": [
-                "Description: This concept introduces the process of reading data from files and using it to create and initialize objects in Java. Mastery of this skill is essential for applications that require dynamic data handling and object creation based on external data sources.",
-                "Subpoint 1: Understanding file formats and parsing techniques for data extraction.",
-                "Subpoint 2: Using file I/O classes to read data and convert it into object attributes.",
-                "Subpoint 3: Handling exceptions and ensuring data integrity during object instantiation."
-            ]
-        },
-        {
-            "main_point": "Designing Classes",
-            "sub_points": [
-                "Description: This concept focuses on the principles and practices of designing well-structured Java classes, which are fundamental to object-oriented programming. Effective class design is crucial for creating maintainable and scalable software systems.",
-                "Subpoint 1: Identifying class responsibilities and defining clear interfaces.",
-                "Subpoint 2: Implementing cohesive class structures with appropriate fields and methods.",
-                "Subpoint 3: Leveraging design patterns to solve common problems and enhance class design."
-            ]
-        },
-        {
-            "main_point": "Programming Creatively",
-            "sub_points": [
-                "Description: This concept encourages students to apply creative thinking and problem-solving techniques in their programming projects. Creative programming is vital for developing innovative solutions and enhancing the functionality and user experience of software applications.",
-                "Subpoint 1: Exploring different approaches to problem-solving and algorithm design.",
-                "Subpoint 2: Encouraging experimentation and iteration to refine solutions.",
-                "Subpoint 3: Integrating user feedback and testing to improve program effectiveness and usability."
-            ]
-        }
+    2. Designing Classes
+       - Identifying class responsibilities and relationships
+       - Implementing encapsulation with appropriate access modifiers
+       - Creating cohesive class structures with clear interfaces
+       - Applying basic design patterns and principles
+
+    3. Programming Creatively
+       - Exploring multiple solution approaches to problems
+       - Implementing user-friendly interfaces and error handling
+       - Adding engaging features that enhance functionality
+       - Iterating and improving solutions based on testing
     """
 
+    # Enhanced system message for better pedagogical content
     system_message = (
-        "You are an experienced programming instructor creating detailed tasks for university-level students. "
-        "The tasks should be challenging, pedagogically valuable, and include detailed descriptions."
-        "The students are first year computer science students with basic programming capabilities."
-        f"The goal of the course is to introduce and help them learn key programming concepts based on the weekly learning goals:\n{learning_goals}\n."
-        "The tasks should be solvable within one week time frame."
-        "The code snippets provided should only provide a scaffolding and not reveal any answer or solutions to the students."
-    )
-    user_message = (
-        f"Create a high-level programming task description in {language} with the following theme:\n\n"
-        f"**Theme**: {theme}\n\n"
-        f"The task must include and integrate the following learning goals:\n{learning_goals}\n\n"
-        "The task description should be engaging, detailed, and structured to provide a foundation for exercises."
-        "Include relevant emojies beside the title of each exercise."
-        "The task description should include proper scaffolding with small code snippets to help students stay on track and not be confused."
-        "The first two exercises are supposed to be more on the theoretical side with the concepts in Exercise 2 flowing to exercise 3 which is more about programming."
-        "Exercise 3 and 4 are more programming based but are focused on more basic programming contexts"
-        "Exercise 5 and 6 are challenging but feasible programmin exercises as part of a weekly task for a CS1 student."
-        
+        "You are an expert CS1 instructor with deep knowledge of pedagogical best practices. "
+        "You excel at creating engaging, scaffolded programming tasks that build student confidence while challenging them appropriately. "
+        "Your tasks should:\n"
+        "- Use real-world, relatable scenarios that motivate students\n"
+        "- Provide clear, incremental progression from basic to advanced concepts\n"
+        "- Include practical code examples that guide without giving away solutions\n"
+        "- Incorporate interactive elements that keep students engaged\n"
+        "- Balance theoretical understanding with hands-on programming practice\n\n"
+        f"Target audience: First-year computer science students with basic Java knowledge\n"
+        f"Time constraint: One week completion time\n"
+        f"Learning objectives: {learning_goals}\n\n"
+        "Focus on creating tasks that students will find meaningful and enjoyable to complete."
     )
 
+    # Step 1: Generate enhanced task theme description
+    user_message = (
+        f"Create an engaging programming task description in {language} based on this theme:\n\n"
+        f"**Theme**: {theme}\n\n"
+        "The task description should:\n"
+        "1. **Hook the reader** with an interesting scenario or story that makes the programming meaningful\n"
+        "2. **Clearly connect** the learning goals to practical, real-world applications\n"
+        "3. **Provide context** about why these skills matter in software development\n"
+        "4. **Include a brief overview** of what students will build by the end\n"
+        "5. **Set appropriate expectations** for difficulty and time investment\n\n"
+        
+        "Structure the response with:\n"
+        "- An engaging title with relevant emoji\n"
+        "- A compelling opening that establishes the scenario\n"
+        "- Clear learning objectives that connect to the theme\n"
+        "- A brief roadmap of what students will accomplish\n"
+        "- Practical applications or extensions they might explore\n\n"
+        
+        "Make it sound exciting and achievable, not intimidating. Use concrete examples where possible."
+    )
     task_description = generate_task_step(system_message, user_message)
     print(task_description)
 
     # Step 2: Generate Exercises 1 & 2
     user_message = (
-        f"The following is the task description so far:\n\n{task_description}\n\n"
-        "Based on this, create the first two exercises:\n"
-        "- **Exercises 1 & 2**: Focus on theoretical aspects of the learning goals. Challenge students' understanding through conceptual questions about CS concepts involved in the task without requiring significant coding."
-        "These exercises should introduce the overall task and prepare students for subsequent coding activities, as noted they are only the 1&2 exercises out of 6"
-        "Hold these exercises short and concise each of them to ca 300 - 400 words max."
+        f"Continuing from the previous exercises:\n\n{task_description}\n\n{exercises_1_2}\n\n"
+        "Create Exercises 3 & 4 that **bridge theory to practice**:\n\n"
+        
+        "**Exercise 3** should:\n"
+        "- Implement basic file reading with simple object creation\n"
+        "- Provide starter code that demonstrates the pattern\n"
+        "- Include step-by-step instructions for key parts\n"
+        "- Focus on ONE main concept (file I/O OR object creation)\n"
+        "- Include error handling basics and validation\n\n"
+        
+        "**Exercise 4** should:\n"
+        "- Combine file reading with more complex object relationships\n"
+        "- Introduce class design implementation\n"
+        "- Build directly on Exercise 3's foundation\n"
+        "- Include debugging or testing components\n"
+        "- Provide scaffolding code with clear TODOs\n\n"
+        
+        "For both exercises:\n"
+        "- Include relevant emoji in titles\n"
+        "- Provide code templates with helpful comments\n"
+        "- Offer specific hints for common pitfalls\n"
+        "- Connect each step back to the learning goals\n"
+        "- Make the progression feel natural and achievable\n\n"
+        
+        "Ensure students can complete these exercises and feel confident moving to the final challenges."
     )
 
     exercises_1_2 = generate_task_step(system_message, user_message, Config.TASK_SETTINGS['exercises_1_2_tokens'])
@@ -105,12 +126,32 @@ def main(api_key):
 
     # Step 3: Generate Exercises 3 & 4
     user_message = (
-        f"The following is the task description and Exercises 1 & 2:\n\n{task_description}\n\n{exercises_1_2}\n\n"
-        "Based on this, create Exercises 3 & 4:\n"
-        "- **Exercises 3 & 4**: Focus on combining and integrating the concepts into coding. Require students to write code that applies the concepts in practical scenarios."
-        "These exercises should transition seamlessly from the theoretical groundwork laid in Exercises 1 & 2."
-        "The first two exercises focus on the theoretical aspects of the task and the subsequent ones (5&6) will be more pure coding, so these exercises (3&4) need to act as a balancing act and transition between the two. "
-        "Take into consideration that the exercises are to be completed in a one week time span by first year computer science students."
+        f"Building on all previous work:\n\n{task_description}\n\n{exercises_1_2}\n\n{exercises_3_4}\n\n"
+        "Create the culminating Exercises 5 & 6 that **integrate and extend** all concepts:\n\n"
+        
+        "**Exercise 5** should:\n"
+        "- Integrate file I/O, object creation, and class design into a cohesive solution\n"
+        "- Require creative problem-solving while staying within CS1 scope\n"
+        "- Include multiple interacting classes and data sources\n"
+        "- Provide clear requirements but allow for creative implementation\n"
+        "- Include comprehensive testing or validation requirements\n\n"
+        
+        "**Exercise 6** should:\n"
+        "- Be the most challenging, requiring synthesis of all previous work\n"
+        "- Introduce ONE slightly advanced concept (e.g., collections, inheritance basics)\n"
+        "- Encourage creative extensions or personalization\n"
+        "- Include options for different difficulty levels or approaches\n"
+        "- Culminate in a complete, working application\n\n"
+        
+        "For both exercises:\n"
+        "- Include relevant emojis in titles\n"
+        "- Provide sufficient scaffolding without over-constraining creativity\n"
+        "- Include clear success criteria and testing guidelines\n"
+        "- Offer extension challenges for advanced students\n"
+        "- Connect back to real-world applications\n"
+        "- Include reflection questions about the learning process\n\n"
+        
+        "Make these exercises challenging but achievable, with a clear sense of accomplishment upon completion."
     )
 
     exercises_3_4 = generate_task_step(system_message, user_message)
@@ -118,13 +159,32 @@ def main(api_key):
 
     # Step 4: Generate Exercises 5 & 6
     user_message = (
-        f"The following is the task description and Exercises 1-4:\n\n{task_description}\n\n{exercises_1_2}\n\n{exercises_3_4}\n\n"
-        "Based on this, create Exercises 5 & 6:\n"
-        "- **Exercises 5 & 6**: These are challenging coding tasks that require significant learning and coding effort to complete. Build these step-by-step tasks upon previous exercises."
-        "Ensure that these exercises finalize the learning journey and consolidate all previous steps into a cohesive outcome."
-        "Take into consideration that the exercises are to be completed in a one week time span by first year computer science students."
-        "The exercises should provide a good scaffolding for the students so that they can stay on course and not be confused by the objectives of the exercise."
-        "The final exercise, exercise 6, should be slightly more challenging and only very slightly expand the scope of CS1 knowledge. "
+        f"Building on all previous work:\n\n{task_description}\n\n{exercises_1_2}\n\n{exercises_3_4}\n\n"
+        "Create the culminating Exercises 5 & 6 that **integrate and extend** all concepts:\n\n"
+        
+        "**Exercise 5** should:\n"
+        "- Integrate file I/O, object creation, and class design into a cohesive solution\n"
+        "- Require creative problem-solving while staying within CS1 scope\n"
+        "- Include multiple interacting classes and data sources\n"
+        "- Provide clear requirements but allow for creative implementation\n"
+        "- Include comprehensive testing or validation requirements\n\n"
+        
+        "**Exercise 6** should:\n"
+        "- Be the most challenging, requiring synthesis of all previous work\n"
+        "- Introduce ONE slightly advanced concept (e.g., collections, inheritance basics)\n"
+        "- Encourage creative extensions or personalization\n"
+        "- Include options for different difficulty levels or approaches\n"
+        "- Culminate in a complete, working application\n\n"
+        
+        "For both exercises:\n"
+        "- Include relevant emojis in titles\n"
+        "- Provide sufficient scaffolding without over-constraining creativity\n"
+        "- Include clear success criteria and testing guidelines\n"
+        "- Offer extension challenges for advanced students\n"
+        "- Connect back to real-world applications\n"
+        "- Include reflection questions about the learning process\n\n"
+        
+        "Make these exercises challenging but achievable, with a clear sense of accomplishment upon completion."
     )
 
     exercises_5_6 = generate_task_step(system_message, user_message)

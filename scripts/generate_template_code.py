@@ -1,14 +1,13 @@
 import os
 import sys
 import subprocess
-from openai import OpenAI
+from utils import OpenAIClient, GitOperations, FileOperations, validate_environment, print_error_and_exit
 
 def main(api_key, branch_name):
     if not api_key:
-        print("Error: OpenAI API key is missing.")
-        sys.exit(1)
+        print_error_and_exit("OpenAI API key is missing.")
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAIClient(api_key=api_key)
 
     # Read the existing solution code from .hidden_tasks directory
     solution_dir = ".hidden_tasks"
@@ -16,14 +15,13 @@ def main(api_key, branch_name):
     try:
         for filename in os.listdir(solution_dir):
             if filename.endswith(".java"):
-                with open(os.path.join(solution_dir, filename), "r") as file:
-                    solution_files.append((filename, file.read()))
+                file_path = os.path.join(solution_dir, filename)
+                content = FileOperations.read_file(file_path)
+                solution_files.append((filename, content))
         if not solution_files:
-            print("Error: No Java solution files found in .hidden_tasks.")
-            sys.exit(1)
+            print_error_and_exit("No Java solution files found in .hidden_tasks.")
     except FileNotFoundError:
-        print("Error: Solution files not found in .hidden_tasks directory.")
-        sys.exit(1)
+        print_error_and_exit("Solution files not found in .hidden_tasks directory.")
 
     # Generate a template from the solution for each file using OpenAI API
     for filename, solution_content in solution_files:
@@ -35,18 +33,17 @@ def main(api_key, branch_name):
 
         # Write the final template to gen_src directory
         gen_src_dir = "gen_src"
-        os.makedirs(gen_src_dir, exist_ok=True)
+        FileOperations.ensure_directory(gen_src_dir)
         file_path = os.path.join(gen_src_dir, filename)
 
         try:
-            with open(file_path, "w") as template_file:
-                template_file.write(template_content)
+            FileOperations.write_file(file_path, template_content)
             print(f"Successfully created template for {filename}")
-        except IOError as e:
+        except Exception as e:
             print(f"Error writing file {filename}: {e}")
 
     # Commit and push changes
-    commit_and_push_changes(branch_name, gen_src_dir)
+    GitOperations.commit_and_push(branch_name, gen_src_dir, "Add generated template code")
 
 def generate_template_with_openai(client, solution_content):
     """
