@@ -1,3 +1,5 @@
+![Task Image](images/task_image_20250630_163120.png)
+
 # Pit-Lane Strategist 🏎️💨  
 *A one–week mini-sprint for first-year CS students*
 
