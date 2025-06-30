@@ -1,3 +1,5 @@
+![Task Image](images/task_image_20250630_230038.png)
+
 # 🏎️ “Box, Box, Box!” – The F1 Tyre-Swap Challenge  
 *(Week 1 – Complete, Polished Edition)*
 
