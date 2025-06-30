@@ -1,3 +1,5 @@
+![Task Image](images/task_image_20250630_230713.png)
+
 # 🏎️💥 Pit-Stop Panic! — Complete Mini-Project Brief  
 
 *(This document supersedes all earlier drafts. Read it end-to-end before you start!)*  
