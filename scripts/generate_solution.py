@@ -3,6 +3,7 @@ import sys
 import subprocess
 import re  # For regex operations
 from openai import OpenAI
+from utils import FileOperations
 
 def main(api_key, branch_name):
     if not api_key:
