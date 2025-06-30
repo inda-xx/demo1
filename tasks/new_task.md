@@ -1,3 +1,5 @@
+![Task Image](images/task_image_20250630_161817.png)
+
 # ByteQuest 🎮 – Build Your Own 2-D Arcade Game
 
 ## 📋 Overview
