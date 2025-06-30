@@ -92,124 +92,171 @@ def main(api_key):
         
     )
 
-    task_description = generate_task_step(system_message, user_message)
-    print(task_description)
-
-    # Step 2: Generate Exercises 1 & 2
+    # Step 1: Generate overview + exercises 1-2 in one call with template structure
     user_message = (
-        f"The following is the task description so far:\n\n{task_description}\n\n"
-        "Create Exercises 1 & 2 that focus on theoretical understanding and conceptual preparation:\n\n"
-        "**Exercise 1** (📖 Conceptual Understanding - 300-400 words):\n"
-        "- Start with a thought-provoking question or scenario\n"
-        "- Include 3-4 sub-questions that build understanding progressively\n"
-        "- Add a 'Think About It' box with reflection questions\n"
-        "- Provide hints in collapsible sections using <details> tags\n"
-        "- Include references to real-world applications\n\n"
-        "**Exercise 2** (🔍 Design & Analysis - 300-400 words):\n"
-        "- Present a design challenge or analysis task\n"
-        "- Include visual elements (suggest ASCII diagrams or flowcharts)\n"
-        "- Provide a partially completed example for guidance\n"
-        "- Add 'Common Pitfalls' section to help students avoid mistakes\n"
-        "- Bridge to the coding exercises by having students sketch pseudocode or class diagrams\n\n"
-        "Use engaging titles with emojis for each exercise."
-    )
-
-    exercises_1_2 = generate_task_step(system_message, user_message, Config.TASK_SETTINGS['exercises_1_2_tokens'])
-    print(exercises_1_2)
-
-    # Step 3: Generate Exercises 3 & 4
-    user_message = (
-    f"The following is the task description and Exercises 1 & 2:\n\n{task_description}\n\n{exercises_1_2}\n\n"
-    "Create Exercises 3 & 4 that transition from theory to practice:\n\n"
-    "**Exercise 3** (🏗️ Building Foundations):\n"
-    "- Title should indicate the core implementation task\n"
-    "- Provide starter code with TODO comments\n"
-    "- Include 3-4 incremental implementation steps\n"
-    "- Add test cases students can use to verify their work\n"
-    "- Include a 'Code Quality Checklist' with 4-5 items\n"
-    "- Provide debugging tips in a dedicated section\n\n"
-    "**Exercise 4** (🔄 Integration & Enhancement):\n"
-    "- Build directly on Exercise 3's code\n"
-    "- Introduce 1-2 new concepts or techniques\n"
-    "- Include performance or design considerations\n"
-    "- Provide multiple solution approaches with trade-offs\n"
-    "- Add 'Extension Ideas' for ambitious students\n\n"
-    "Each exercise should include:\n"
-    "- Clear success criteria\n"
-    "- Expected output examples\n"
-    "- Time estimate (e.g., '⏱️ Estimated time: 45-60 minutes')"
-    )
-
-    exercises_3_4 = generate_task_step(system_message, user_message)
-    print(exercises_3_4)
-
-    # Step 4: Generate Exercises 5 & 6
-    user_message = (
-    f"The following is the task description and Exercises 1-4:\n\n{task_description}\n\n{exercises_1_2}\n\n{exercises_3_4}\n\n"
-    "Create Exercises 5 & 6 as challenging culmination tasks:\n\n"
-    "**Exercise 5** (🚀 Advanced Implementation):\n"
-    "- Present a significant feature addition or system enhancement\n"
-    "- Break down into 4-5 manageable sub-tasks\n"
-    "- Provide architectural guidance without giving away the solution\n"
-    "- Include edge cases students must handle\n"
-    "- Add a 'Design Decisions' section where students document their choices\n"
-    "- Incorporate file I/O or external data interaction\n\n"
-    "**Exercise 6** (🌟 Creative Extension - Slightly beyond CS1):\n"
-    "- Offer 2-3 different paths students can choose\n"
-    "- Include optional bonus challenges marked with '🏆 Bonus'\n"
-    "- Require students to write documentation (Javadoc example)\n"
-    "- Include a reflection component on what they learned\n"
-    "- Provide evaluation criteria or rubric outline\n\n"
-    "End with:\n"
-    "- ✅ Comprehensive checklist (5-10 items)\n"
-    )
-
-    exercises_5_6 = generate_task_step(system_message, user_message)
-    print(exercises_5_6)
-
-    # Combine all generated content
-    complete_task = f"{task_description}\n\n{exercises_1_2}\n\n{exercises_3_4}\n\n{exercises_5_6}"
-    
-    # Step 5: Apply overall structure template to complete task
-    user_message = (
-        f"Take the following complete task content and restructure it using the standardized template:\n\n"
-        f"{complete_task}\n\n"
-        "Apply this overall structure template to organize all the content:\n\n"
-        "# Task Title with Emoji\n\n"
+        f"Create the first part of a comprehensive programming task in {language} with the following context:\n\n"
+        f"**Theme**: {theme}\n\n"
+        f"**Learning Goals**: {learning_goals}\n\n"
+        "Generate the overview and first two exercises using this exact structure:\n\n"
+        "# [Task Title with Emoji]\n\n"
         "## 📋 Overview\n"
-        "[Use the existing task overview/introduction content]\n\n"
+        "[Engaging 2-3 paragraph introduction that sets context and excites students]\n\n"
         "## 🎯 Learning Objectives\n"
-        "- Objective 1\n"
-        "- Objective 2\n"
-        "- Objective 3\n\n"
+        "- [Objective 1 derived from learning goals]\n"
+        "- [Objective 2 derived from learning goals]\n"
+        "- [Objective 3 derived from learning goals]\n\n"
         "## 📚 Prerequisites\n"
-        "- Prior knowledge needed\n"
-        "- Tools required\n\n"
+        "- [Prior knowledge needed]\n"
+        "- [Tools required]\n\n"
         "## 🚀 Getting Started\n"
-        "[Setup instructions from existing content]\n\n"
+        "[Setup instructions and initial guidance]\n\n"
         "## Exercises\n\n"
-        "### Exercise X: Title with Emoji\n"
-        "**⏱️ Estimated Time:** XX minutes\n\n"
-        "**🎯 Goal:** [What students will accomplish]\n\n"
+        "### Exercise 1: [Title with Emoji] (📖 Conceptual Understanding)\n"
+        "**⏱️ Estimated Time:** 30-45 minutes\n\n"
+        "**🎯 Goal:** [What students will accomplish in conceptual understanding]\n\n"
         "**📝 Instructions:**\n"
-        "[Step-by-step guide]\n\n"
+        "[3-4 sub-questions that build understanding progressively with thought-provoking scenarios]\n\n"
         "**💡 Hints:**\n"
         "<details>\n"
         "<summary>Click for hint</summary>\n"
-        "[Helpful hint]\n"
+        "[Helpful hint with real-world applications]\n"
         "</details>\n\n"
         "**✅ Success Criteria:**\n"
-        "- [ ] Criterion 1\n"
-        "- [ ] Criterion 2\n\n"
-        "[Repeat for all 6 exercises]\n\n"
-        "## 🤔 Reflection Questions\n"
-        "[Add reflection questions to deepen understanding]\n\n"
-        "Preserve all the existing content but organize it according to this structure. "
-        "Ensure each exercise follows the standardized format with estimated time, goal, instructions, hints, and success criteria."
+        "- [ ] [Specific criterion 1]\n"
+        "- [ ] [Specific criterion 2]\n"
+        "- [ ] [Specific criterion 3]\n\n"
+        "### Exercise 2: [Title with Emoji] (🔍 Design & Analysis)\n"
+        "**⏱️ Estimated Time:** 30-45 minutes\n\n"
+        "**🎯 Goal:** [What students will accomplish in design/analysis]\n\n"
+        "**📝 Instructions:**\n"
+        "[Design challenge with visual elements, partially completed examples, bridge to coding]\n\n"
+        "**💡 Hints:**\n"
+        "<details>\n"
+        "<summary>Click for hint</summary>\n"
+        "[Common pitfalls to avoid]\n"
+        "</details>\n\n"
+        "**✅ Success Criteria:**\n"
+        "- [ ] [Specific criterion 1]\n"
+        "- [ ] [Specific criterion 2]\n"
+        "- [ ] [Specific criterion 3]\n\n"
+        "Include 1-2 'fun facts' or 'did you know' boxes. Use conversational but professional tone."
+    )
+
+    overview_and_exercises_1_2 = generate_task_step(system_message, user_message, Config.TASK_SETTINGS.get('overview_exercises_1_2_tokens', 4000))
+    print("=== OVERVIEW AND EXERCISES 1-2 ===")
+    print(overview_and_exercises_1_2)
+
+    # Step 2: Generate exercises 3-6 with full context
+    enhanced_system_message = (
+        f"{system_message}\n\n"
+        f"CONTEXT FROM PREVIOUS GENERATION:\n"
+        f"Theme: {theme}\n"
+        f"Learning Goals: {learning_goals}\n"
+        f"Language: {language}\n\n"
+        "Continue building on the established task structure and narrative tone."
     )
     
-    final_structured_task = generate_task_step(system_message, user_message)
-    complete_task = final_structured_task
+    user_message = (
+        f"Here is the task overview and first two exercises:\n\n{overview_and_exercises_1_2}\n\n"
+        "Continue the task by creating Exercises 3-6 that build logically on the foundation. "
+        "Maintain consistency with the established theme, tone, and structure.\n\n"
+        "Generate the remaining exercises using the same format:\n\n"
+        "### Exercise 3: [Title with Emoji] (🏗️ Building Foundations)\n"
+        "**⏱️ Estimated Time:** 45-60 minutes\n\n"
+        "**🎯 Goal:** [Core implementation goal that connects to Exercises 1-2]\n\n"
+        "**📝 Instructions:**\n"
+        "[Starter code with TODO comments, 3-4 incremental steps, test cases]\n\n"
+        "**💡 Hints:**\n"
+        "<details>\n"
+        "<summary>Click for hint</summary>\n"
+        "[Debugging tips and code quality guidance]\n"
+        "</details>\n\n"
+        "**✅ Success Criteria:**\n"
+        "- [ ] [Specific criterion 1]\n"
+        "- [ ] [Specific criterion 2]\n"
+        "- [ ] [Specific criterion 3]\n\n"
+        "### Exercise 4: [Title with Emoji] (🔄 Integration & Enhancement)\n"
+        "**⏱️ Estimated Time:** 45-60 minutes\n\n"
+        "**🎯 Goal:** [Integration goal building directly on Exercise 3]\n\n"
+        "**📝 Instructions:**\n"
+        "[Build on Exercise 3, introduce 1-2 new concepts, performance considerations]\n\n"
+        "**💡 Hints:**\n"
+        "<details>\n"
+        "<summary>Click for hint</summary>\n"
+        "[Multiple solution approaches with trade-offs]\n"
+        "</details>\n\n"
+        "**✅ Success Criteria:**\n"
+        "- [ ] [Specific criterion 1]\n"
+        "- [ ] [Specific criterion 2]\n"
+        "- [ ] [Specific criterion 3]\n\n"
+        "### Exercise 5: [Title with Emoji] (🚀 Advanced Implementation)\n"
+        "**⏱️ Estimated Time:** 60-90 minutes\n\n"
+        "**🎯 Goal:** [Advanced feature addition goal]\n\n"
+        "**📝 Instructions:**\n"
+        "[Significant enhancement, 4-5 sub-tasks, architectural guidance, edge cases, file I/O]\n\n"
+        "**💡 Hints:**\n"
+        "<details>\n"
+        "<summary>Click for hint</summary>\n"
+        "[Design decisions guidance]\n"
+        "</details>\n\n"
+        "**✅ Success Criteria:**\n"
+        "- [ ] [Specific criterion 1]\n"
+        "- [ ] [Specific criterion 2]\n"
+        "- [ ] [Specific criterion 3]\n\n"
+        "### Exercise 6: [Title with Emoji] (🌟 Creative Extension)\n"
+        "**⏱️ Estimated Time:** 60-90 minutes\n\n"
+        "**🎯 Goal:** [Creative extension goal slightly beyond CS1]\n\n"
+        "**📝 Instructions:**\n"
+        "[2-3 different paths, bonus challenges marked with 🏆, documentation requirements]\n\n"
+        "**💡 Hints:**\n"
+        "<details>\n"
+        "<summary>Click for hint</summary>\n"
+        "[Documentation and evaluation guidance]\n"
+        "</details>\n\n"
+        "**✅ Success Criteria:**\n"
+        "- [ ] [Specific criterion 1]\n"
+        "- [ ] [Specific criterion 2]\n"
+        "- [ ] [Specific criterion 3]\n\n"
+        "## 🤔 Reflection Questions\n"
+        "[3-4 questions that deepen understanding and connect to learning objectives]\n\n"
+        "Ensure exercises build logically and maintain narrative coherence with the established task."
+    )
+
+    exercises_3_6 = generate_task_step(enhanced_system_message, user_message, Config.TASK_SETTINGS.get('exercises_3_6_tokens', 5000))
+    print("=== EXERCISES 3-6 ===")
+    print(exercises_3_6)
+
+    # Step 3: Final integration and polish with complete context
+    complete_context = f"Theme: {theme}\nLearning Goals: {learning_goals}\nLanguage: {language}"
+    final_system_message = (
+        f"{system_message}\n\n"
+        f"COMPLETE TASK CONTEXT:\n{complete_context}\n\n"
+        "You are finalizing a comprehensive programming task. Ensure consistency, flow, and pedagogical effectiveness."
+    )
+    
+    user_message = (
+        f"Here is the complete task content:\n\n{overview_and_exercises_1_2}\n\n{exercises_3_6}\n\n"
+        "Perform final integration and polish:\n\n"
+        "1. Ensure smooth transitions between exercises\n"
+        "2. Add a comprehensive final checklist (8-12 items covering all exercises)\n"
+        "3. Add any missing cross-references between exercises\n"
+        "4. Verify all learning objectives are addressed\n"
+        "5. Ensure consistent difficulty progression\n"
+        "6. Add final sections:\n\n"
+        "## ✅ Final Checklist\n"
+        "- [ ] [Comprehensive item 1]\n"
+        "- [ ] [Comprehensive item 2]\n"
+        "[...8-12 items total covering all key achievements]\n\n"
+        "## 📚 Additional Resources\n"
+        "[2-3 relevant resources for deeper learning]\n\n"
+        "## 🤝 Collaboration Guidelines\n"
+        "[Guidelines for working with others on this task]\n\n"
+        "Return the complete, polished task ready for students."
+    )
+
+    complete_task = generate_task_step(final_system_message, user_message, Config.TASK_SETTINGS.get('final_polish_tokens', 6000))
+    print("=== FINAL COMPLETE TASK ===")
+    print(complete_task)
 
     # Create a new branch with a unique name
     stockholm_tz = timezone('Europe/Stockholm')
