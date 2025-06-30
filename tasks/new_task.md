@@ -1,3 +1,5 @@
+![Task Image](images/task_image_20250630_232431.png)
+
 # Pit-Stop Panic 🏎️💥
 
 ## 📋 Overview
