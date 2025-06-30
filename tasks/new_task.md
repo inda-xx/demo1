@@ -1,3 +1,5 @@
+![Task Image](images/task_image_20250630_154738.png)
+
 High-Level Weekly Programming Task  
 Theme: Simulating Formula-1 Tire Degradation & Pit-Stop Decisions  
 
